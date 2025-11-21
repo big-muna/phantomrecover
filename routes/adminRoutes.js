@@ -1,12 +1,10 @@
 import express from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { pool } from "../db.js"; // adjust path to where your db connection is
-import { authenticateJWT } from "../middleware/auth.js";
-import { logAction } from "../utils.js";       // if utils.js contains logAction()
-import { io } from "../server.js";            // Socket.io instance
-import sendEmail from "../email/sendEmail.js";// your email function
-import { recoveryHistory } from "../data/recovery.js"; //
+import { io, pool, sendMail, authenticateJWT } from "../server.js"; // only these
+import { logAction } from "../utils.js";       // assuming utils.js contains logAction()
+import sendEmail from "../email/sendEmail.js"; // your email function
+import { recoveryHistory } from "../data/recovery.js"; // import directly from data
 
 const router = express.Router();
 
@@ -67,9 +65,7 @@ router.patch("/users/:id/toggle", authenticateJWT, async (req, res) => {
       [id]
     );
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ message: "User not found" });
-    }
+    if (result.rows.length === 0) return res.status(404).json({ message: "User not found" });
 
     logAction("USER_TOGGLE", result.rows[0]);
     io.emit("updateUsers", result.rows[0]); // push update to frontend
@@ -93,9 +89,7 @@ router.patch("/users/:id/reset", authenticateJWT, async (req, res) => {
       [hashedPassword, id]
     );
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ message: "User not found" });
-    }
+    if (result.rows.length === 0) return res.status(404).json({ message: "User not found" });
 
     logAction("USER_RESET", { userId: id });
     res.json({ message: "Password reset for user", tempPassword });
@@ -114,9 +108,8 @@ router.patch("/recovery/:id/status", authenticateJWT, async (req, res) => {
     if (!recovery) return res.status(404).json({ message: "Recovery not found" });
 
     const validStatuses = ["Pending", "In Progress", "Completed", "Rejected"];
-    if (status && !validStatuses.includes(status)) {
+    if (status && !validStatuses.includes(status))
       return res.status(400).json({ message: "Invalid status value" });
-    }
 
     if (status) recovery.status = status;
     if (assignedTo) recovery.assignedTo = assignedTo;

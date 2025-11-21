@@ -853,3 +853,5 @@ io.on("connection", (socket) => {
   console.log("🔌 Client connected:", socket.id);
   socket.emit("initData", recoveryHistory);
 });
+// ---------------- EXPORTS ----------------
+export { io, pool, sendMail, authenticateJWT };
